@@ -79,19 +79,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Client-specific custom attributes from extraction
     const chargerBrand = (customData['charger_brand'] as string) || analysis.charger_brand;
-    const evModel = (customData['ev_make_model'] as string) || (customData['ev_model'] as string) || analysis.ev_make_model;
+    const evModel = (customData['ev_make_model'] as string) || (customData['ev_model'] as string) || (customData['vehicle'] as string) || analysis.ev_make_model;
     const propertyType = (customData['property_type'] as string) || analysis.property_type;
     const quotedPackage = (customData['quoted_package'] as string) || analysis.quoted_package;
     const cableRun = (customData['cable_run_m'] as string) || analysis.cable_run_m;
     const callerName = (customData['caller_name'] as string) || (customData['first_name'] as string) || '';
     const callerEmail = (customData['email'] as string) || (customData['customer_email'] as string) || '';
 
+    // Specialized CATEC / SHABIK / BARQ / Plug 'n Go support fields
+    const issueType = (customData['issue_type'] as string) || '';
+    const network = (customData['network'] as string) || '';
+    const chargerId = (customData['charger_id'] as string) || '';
+    const stationLocation = (customData['station_location'] as string) || (customData['station'] as string) || '';
+    const errorMessage = (customData['error_message'] as string) || (customData['screen_state'] as string) || '';
+    const troubleshooting = (customData['troubleshooting_performed'] as string) || '';
+    const resolutionState = (customData['resolution_state'] as string) || '';
+    const severity = (customData['severity'] as string) || (customData['ticket_priority'] as string) || '';
+
     // Build Zoho CRM payload using field mapping
     const updateData = buildZohoPayload({
       lastCallSummary: callSummary,
       callOutcome: callOutcome,
       sentiment: userSentiment,
-      callIntent: callIntent,
+      callIntent: callIntent || issueType,
       recordingUrl: recordingUrl,
       conversationId: call.call_id,
       callDuration: durationSeconds,
@@ -160,31 +170,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Determine agent friendly name
     const agentMap: Record<string, string> = {
       'agent_42eeb5d0bd58551aa744b7b003': 'Maryam (Receptionist / Router)',
-      'agent_c984fdd679595175361ed6bd22': 'Customer Support AI',
+      'agent_c984fdd679595175361ed6bd22': 'BARQ Support AI',
       'agent_77190245c63dc89063c6da7eaf': 'CATEC B2C Sales AI',
       'agent_d9da3b9e4e8b073a003fce20b0': "Plug'N Go Support AI",
-      'agent_33b0948c1e13404904c145f846': 'CATEC Customer Support',
+      'agent_33b0948c1e13404904c145f846': 'CATEC Customer Support 24/7',
     };
     const agentFriendlyName = agentMap[call.agent_id] || call.agent_id || 'AI Receptionist';
 
-    // 4. Automatically create a Support Ticket (Case) in Zoho CRM
-    if (callSummary || callIntent || callOutcome) {
-      const ticketSubject = callIntent
+    // 5. Automatically create a Support Ticket (Case) in Zoho CRM with rich metadata
+    if (callSummary || callIntent || issueType || callOutcome) {
+      const ticketSubject = issueType
+        ? `[AI Support - ${issueType}] ${stationLocation || chargerId ? `${stationLocation || chargerId}` : searchPhone}`
+        : callIntent
         ? `[AI Voice] ${callIntent}`
         : callSummary
         ? `[AI Voice Call] ${callSummary.slice(0, 60)}...`
         : `[AI Voice Call] Inbound call from ${searchPhone}`;
 
+      const richDescription = [
+        callSummary || 'Call completed via AI Voice Agent.',
+        '',
+        '=== AI Call & Diagnostic Details ===',
+        issueType ? `Issue Type: ${issueType}` : null,
+        network ? `Network: ${network}` : null,
+        stationLocation ? `Station / Location: ${stationLocation}` : null,
+        chargerId ? `Charger ID: ${chargerId}` : null,
+        evModel ? `Vehicle: ${evModel}` : null,
+        errorMessage && errorMessage !== 'None' ? `Reported Error: ${errorMessage}` : null,
+        troubleshooting ? `Troubleshooting Performed: ${troubleshooting}` : null,
+        resolutionState ? `Resolution State: ${resolutionState}` : null,
+        severity ? `Severity: ${severity}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n');
+
       await createZohoCase({
         subject: ticketSubject,
-        description: callSummary || 'Call completed via AI Voice Agent.',
+        description: richDescription,
         contactId: customer.module === 'Contacts' ? customer.id : undefined,
         leadId: customer.module === 'Leads' ? customer.id : undefined,
         phone: searchPhone,
         email: callerEmail || customer.email || undefined,
         sentiment: userSentiment,
         agentName: agentFriendlyName,
-        callOutcome: callOutcome,
+        callOutcome: resolutionState || callOutcome,
         recordingUrl: recordingUrl,
         callId: call.call_id,
       });
