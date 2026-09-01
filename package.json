@@ -1,0 +1,41 @@
+{
+  "name": "retell-zoho-integration",
+  "version": "1.0.0",
+  "description": "Production-ready Serverless Integration between Retell AI and Zoho CRM",
+  "main": "api/health.ts",
+  "scripts": {
+    "dev": "vercel dev",
+    "dev:local": "node --loader tsx scripts/dev-server.ts",
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "retell",
+    "zoho",
+    "crm",
+    "serverless",
+    "vercel",
+    "voice-ai",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@vercel/node": "^3.0.0",
+    "dotenv": "^16.4.7",
+    "libphonenumber-js": "^1.11.17",
+    "retell-sdk": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "tsx": "^4.23.13",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
