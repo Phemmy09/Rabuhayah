@@ -31,9 +31,13 @@ export async function searchLeadByPhone(phone: string): Promise<ZohoLeadRecord |
   }
 
   // Also try searching criteria across Phone and Mobile
-  if (norm.e164) {
+  if (norm.e164 || norm.nationalNumber) {
     try {
-      const criteria = `((Phone:equals:${norm.e164})or(Mobile:equals:${norm.e164}))`;
+      const digits = norm.nationalNumber || norm.e164.replace(/\D/g, '');
+      const searchTerms = [norm.e164, digits, `0${digits}`, norm.raw].filter(Boolean);
+      const orClauses = searchTerms.flatMap((t) => [`(Phone:equals:${t})`, `(Mobile:equals:${t})`]).join('or');
+      const criteria = `(${orClauses})`;
+
       const response = await zohoClient.get<ZohoSearchResponse<ZohoLeadRecord>>('/Leads/search', {
         criteria,
       });
@@ -43,6 +47,21 @@ export async function searchLeadByPhone(phone: string): Promise<ZohoLeadRecord |
       }
     } catch (critError) {
       logger.debug('Lead criteria search did not find match', { phone }, critError);
+    }
+
+    // Word search fallback with last 8-9 digits
+    if (norm.nationalNumber && norm.nationalNumber.length >= 7) {
+      try {
+        const response = await zohoClient.get<ZohoSearchResponse<ZohoLeadRecord>>('/Leads/search', {
+          word: norm.nationalNumber,
+        });
+        if (response && response.data && response.data.length > 0) {
+          logger.info('Lead found via phone word search fallback', { recordId: response.data[0].id });
+          return response.data[0];
+        }
+      } catch (wordError) {
+        logger.debug('Lead word search fallback had no results', { phone }, wordError);
+      }
     }
   }
 

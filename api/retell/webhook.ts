@@ -5,6 +5,7 @@ import { findCustomerByPhone } from '../../lib/zoho/customer.js';
 import { updateContact } from '../../lib/zoho/contacts.js';
 import { updateLead, createLeadIfNotExists } from '../../lib/zoho/leads.js';
 import { buildZohoPayload } from '../../lib/zoho/field-mapping.js';
+import { createZohoCase } from '../../lib/zoho/cases.js';
 import { logger } from '../../lib/logging/logger.js';
 import { config } from '../../lib/config.js';
 import { RetellPostCallWebhookRequest, RetellCallObject } from '../../types/retell.js';
@@ -154,6 +155,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           callId: call.call_id,
         });
       }
+    }
+
+    // Determine agent friendly name
+    const agentMap: Record<string, string> = {
+      'agent_42eeb5d0bd58551aa744b7b003': 'Maryam (Receptionist / Router)',
+      'agent_c984fdd679595175361ed6bd22': 'Customer Support AI',
+      'agent_77190245c63dc89063c6da7eaf': 'CATEC B2C Sales AI',
+      'agent_d9da3b9e4e8b073a003fce20b0': "Plug'N Go Support AI",
+      'agent_33b0948c1e13404904c145f846': 'CATEC Customer Support',
+    };
+    const agentFriendlyName = agentMap[call.agent_id] || call.agent_id || 'AI Receptionist';
+
+    // 4. Automatically create a Support Ticket (Case) in Zoho CRM
+    if (callSummary || callIntent || callOutcome) {
+      const ticketSubject = callIntent
+        ? `[AI Voice] ${callIntent}`
+        : callSummary
+        ? `[AI Voice Call] ${callSummary.slice(0, 60)}...`
+        : `[AI Voice Call] Inbound call from ${searchPhone}`;
+
+      await createZohoCase({
+        subject: ticketSubject,
+        description: callSummary || 'Call completed via AI Voice Agent.',
+        contactId: customer.module === 'Contacts' ? customer.id : undefined,
+        leadId: customer.module === 'Leads' ? customer.id : undefined,
+        phone: searchPhone,
+        email: callerEmail || customer.email || undefined,
+        sentiment: userSentiment,
+        agentName: agentFriendlyName,
+        callOutcome: callOutcome,
+        recordingUrl: recordingUrl,
+        callId: call.call_id,
+      });
     }
 
     const durationMs = Date.now() - startTime;

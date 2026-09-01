@@ -6,6 +6,7 @@ import webhookHandler from '../api/retell/webhook.js';
 import * as customerResolver from '../lib/zoho/customer.js';
 import * as contactModule from '../lib/zoho/contacts.js';
 import * as leadModule from '../lib/zoho/leads.js';
+import * as caseModule from '../lib/zoho/cases.js';
 
 describe('Retell AI Webhook & Verification Tests', () => {
   const testApiKey = 'key_test_secret_12345';
@@ -150,6 +151,7 @@ describe('Retell AI Webhook & Verification Tests', () => {
   describe('Post-Call Webhook Handler', () => {
     beforeEach(() => {
       vi.restoreAllMocks();
+      vi.spyOn(caseModule, 'createZohoCase').mockResolvedValue('case_mock_123');
     });
 
     it('updates existing contact on call_analyzed event', async () => {
