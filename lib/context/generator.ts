@@ -80,10 +80,13 @@ export function buildRetellDynamicVariables(
     (customer.notes ? customer.notes.slice(0, 100) : '') ||
     '';
 
+  const firstName = customer.firstName || 'there';
+  const customerName = customer.fullName || (customer.firstName ? `${customer.firstName} ${customer.lastName || ''}`.trim() : '');
+
   return {
     customer_found: customer.found ? 'true' : 'false',
-    customer_name: customer.fullName || (customer.firstName ? `${customer.firstName} ${customer.lastName}`.trim() : ''),
-    first_name: customer.firstName || '',
+    customer_name: customerName,
+    first_name: firstName,
     last_name: customer.lastName || '',
     customer_phone: customer.phone || '',
     customer_email: customer.email || '',

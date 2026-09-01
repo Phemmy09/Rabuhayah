@@ -128,7 +128,7 @@ describe('Customer Context & Dynamic Variables Generator', () => {
 
       expect(vars.customer_found).toBe('false');
       expect(vars.customer_name).toBe('');
-      expect(vars.first_name).toBe('');
+      expect(vars.first_name).toBe('there');
       expect(vars.last_name).toBe('');
       expect(vars.customer_phone).toBe('+2348012345678');
       expect(vars.customer_email).toBe('');

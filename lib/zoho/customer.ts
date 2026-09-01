@@ -11,9 +11,16 @@ import { ZOHO_FIELD_MAP } from './field-mapping.js';
  * Normalizes a raw Contact record into a standardized customer format
  */
 export function normalizeContact(contact: ZohoContactRecord, queriedPhone: string): NormalizedCustomer {
-  const firstName = contact.First_Name || '';
-  const lastName = contact.Last_Name || '';
-  const fullName = contact.Full_Name || `${firstName} ${lastName}`.trim() || 'Valued Customer';
+  let firstName = contact.First_Name || '';
+  let lastName = contact.Last_Name || '';
+  let fullName = contact.Full_Name || `${firstName} ${lastName}`.trim();
+
+  // Filter out placeholder names like "Unknown Caller" or raw phone numbers
+  const isPlaceholder = (n: string) => !n || n.toLowerCase().includes('unknown') || /^\+?\d+$/.test(n.replace(/\s+/g, ''));
+  if (isPlaceholder(firstName)) firstName = '';
+  if (isPlaceholder(lastName)) lastName = '';
+  if (isPlaceholder(fullName)) fullName = firstName ? `${firstName} ${lastName}`.trim() : '';
+
   const phone = contact.Phone || contact.Mobile || queriedPhone;
   const email = contact.Email || '';
   const company = contact.Account_Name?.name || contact.Department || '';
@@ -29,9 +36,9 @@ export function normalizeContact(contact: ZohoContactRecord, queriedPhone: strin
     found: true,
     module: 'Contacts',
     id: contact.id,
-    firstName,
-    lastName,
-    fullName,
+    firstName: firstName || undefined,
+    lastName: lastName || undefined,
+    fullName: fullName || undefined,
     phone,
     email,
     company,
@@ -50,9 +57,15 @@ export function normalizeContact(contact: ZohoContactRecord, queriedPhone: strin
  * Normalizes a raw Lead record into a standardized customer format
  */
 export function normalizeLead(lead: ZohoLeadRecord, queriedPhone: string): NormalizedCustomer {
-  const firstName = lead.First_Name || '';
-  const lastName = lead.Last_Name || '';
-  const fullName = lead.Full_Name || `${firstName} ${lastName}`.trim() || 'Prospective Customer';
+  let firstName = lead.First_Name || '';
+  let lastName = lead.Last_Name || '';
+  let fullName = lead.Full_Name || `${firstName} ${lastName}`.trim();
+
+  const isPlaceholder = (n: string) => !n || n.toLowerCase().includes('unknown') || /^\+?\d+$/.test(n.replace(/\s+/g, ''));
+  if (isPlaceholder(firstName)) firstName = '';
+  if (isPlaceholder(lastName)) lastName = '';
+  if (isPlaceholder(fullName)) fullName = firstName ? `${firstName} ${lastName}`.trim() : '';
+
   const phone = lead.Phone || lead.Mobile || queriedPhone;
   const email = lead.Email || '';
   const company = lead.Company && lead.Company !== 'Individual' ? lead.Company : '';
@@ -69,9 +82,9 @@ export function normalizeLead(lead: ZohoLeadRecord, queriedPhone: string): Norma
     found: true,
     module: 'Leads',
     id: lead.id,
-    firstName,
-    lastName,
-    fullName,
+    firstName: firstName || undefined,
+    lastName: lastName || undefined,
+    fullName: fullName || undefined,
     phone,
     email,
     company,

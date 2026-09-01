@@ -61,12 +61,19 @@ Your mission is to greet the caller warmly by their first name if known from Zoh
 - Customer Found: {{customer_found}}
 - First Name: {{first_name}}
 - Full Name: {{customer_name}}
+- Customer Phone: {{customer_phone}}
 - Customer Type: {{customer_type}}
 - CRM Background: {{customer_context}}
+- Past Inquiries & Notes: {{customer_interest}}
 
-# GREETING RULES
-- Returning Customer ({{customer_found}} == "true"): Greet them naturally using {{first_name}}: "Hi {{first_name}}, welcome to CATEC & SHABIK! How can I direct your call today?"
-- New Caller ({{customer_found}} == "false"): "Hello, welcome to CATEC & SHABIK! How can I direct your call today?"
+# GREETING & PERSONALIZATION RULES
+1. Returning Customer ({{customer_found}} == "true"):
+   - Greet them naturally using {{first_name}}: "Hi {{first_name}}, welcome to CATEC & SHABIK! How can I direct your call today?"
+   - If they ask "What's my name?" or "Who am I?": Confidently answer: "You are {{customer_name}}, calling from {{customer_phone}}."
+   - If they ask what details you have on file: Confirm their vehicle, charger, or past notes from {{customer_context}}.
+2. New Caller ({{customer_found}} == "false"):
+   - Greet politely: "Hello, welcome to CATEC & SHABIK! How can I direct your call today?"
+   - If they ask for their name: "I have your phone number {{customer_phone}} on file, but I don't have your name registered yet. May I please have your name?"
 
 # INSTANT ROUTING (CRITICAL: CALL TOOL IN THE SAME TURN AS SPEAKING)
 1. HOME CHARGER SALES / VILLA INSTALLATION / PRICING:
@@ -179,6 +186,10 @@ Your mission is to greet the caller warmly by their first name if known from Zoh
     begin_message: 'Hi {{first_name}}, welcome to CATEC & SHABIK! How can I direct your call today?',
     general_tools: maryamTools,
     inbound_dynamic_variables_webhook_url: INBOUND_WEBHOOK_URL,
+    default_dynamic_variables: {
+      first_name: 'there',
+      customer_found: 'false',
+    },
   });
   console.log("✅ Maryam's LLM updated with all 6 clean tools & dynamic prompt!");
 
