@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+import Retell from 'retell-sdk';
+
 dotenv.config({ path: '.env.local' });
 dotenv.config();
 
@@ -10,27 +12,15 @@ async function inspectRecentCalls() {
     process.exit(1);
   }
 
-  console.log('Fetching last 5 calls from Retell (v3 API)...\n');
-  const res = await fetch('https://api.retellai.com/v3/list-calls', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      sort_order: 'descending',
-      limit: 5,
-    }),
+  const client = new Retell({ apiKey });
+
+  console.log('Fetching last 5 calls from Retell (via Retell SDK)...\n');
+  const calls = await client.call.list({
+    sort_order: 'descending',
+    limit: 5,
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    console.error(`API Error ${res.status}: ${text}`);
-    return;
-  }
-
-  const calls = await res.json();
-  const callList = Array.isArray(calls) ? calls : calls?.data || calls?.calls || [];
+  const callList = Array.isArray(calls) ? calls : [];
 
   if (callList.length === 0) {
     console.log('No recent calls found.');

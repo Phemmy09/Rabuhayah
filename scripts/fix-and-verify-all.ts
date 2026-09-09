@@ -1,51 +1,23 @@
 import dotenv from 'dotenv';
+import Retell from 'retell-sdk';
+
 dotenv.config({ path: '.env.local' });
 dotenv.config();
 
 const apiKey = process.env.RETELL_API_KEY || 'key_c3b87488396a193b8dd4a2630066';
+const client = new Retell({ apiKey });
+
 const WEBHOOK_URL = 'https://rabuhayah.vercel.app/api/retell/webhook';
 const INBOUND_WEBHOOK_URL = 'https://rabuhayah.vercel.app/api/retell/inbound';
 
-async function retellPatch(endpoint: string, body: any) {
-  const res = await fetch(`https://api.retellai.com/${endpoint}`, {
-    method: 'PATCH',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`Retell API error on ${endpoint} (${res.status}): ${errorText}`);
-  }
-  return await res.json();
-}
-
-async function retellPost(endpoint: string, body: any) {
-  const res = await fetch(`https://api.retellai.com/${endpoint}`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`Retell API error on ${endpoint} (${res.status}): ${errorText}`);
-  }
-  return await res.json();
-}
-
 async function runFullFix() {
   console.log('===============================================================');
-  console.log('🚀 AUTOMATED RETELL AI CONFIGURATION & FIX SCRIPT');
+  console.log('🚀 AUTOMATED RETELL AI CONFIGURATION & FIX SCRIPT (via Retell SDK)');
   console.log('===============================================================\n');
 
   // 1. Configure Phone Number +97126591017
   console.log('Step 1: Setting Inbound Webhook URL on Phone Number +97126591017...');
-  await retellPatch('update-phone-number/+97126591017', {
+  await client.phoneNumber.update('+97126591017', {
     inbound_webhook_url: INBOUND_WEBHOOK_URL,
     nickname: 'CATEC Main Line (+97126591017)',
   });
@@ -181,10 +153,10 @@ Your mission is to greet the caller warmly by their first name if known from Zoh
     },
   ];
 
-  await retellPatch('update-retell-llm/llm_3a71dcaa30fbea868b70a065bd95', {
+  await client.llm.update('llm_3a71dcaa30fbea868b70a065bd95', {
     general_prompt: maryamPrompt,
     begin_message: 'Hi {{first_name}}, welcome to CATEC & SHABIK! How can I direct your call today?',
-    general_tools: maryamTools,
+    general_tools: maryamTools as any,
     inbound_dynamic_variables_webhook_url: INBOUND_WEBHOOK_URL,
     default_dynamic_variables: {
       first_name: 'there',
@@ -219,7 +191,7 @@ If {{customer_found}} is "true" and details exist in {{customer_context}}, verif
 - Extended Cable Package (>15m): AED 2,200+.
 - All packages include DEWA/ADDC certification and 2-year warranty.`;
 
-  await retellPatch('update-retell-llm/llm_74d6081735d43331a0b27fd1785e', {
+  await client.llm.update('llm_74d6081735d43331a0b27fd1785e', {
     general_prompt: b2cPrompt,
     begin_message: "Hi {{first_name}}, welcome to CATEC — I'm Saeed from Home Charger Sales. How can I help you today?",
   });
@@ -251,7 +223,7 @@ You are the CATEC 24/7 Technical Support AI for charger hardware faults, error l
    - Unplug connector, wait 30s, reconnect firmly.
 3. If unresolved: Assure the caller that a high-priority support ticket has been created and a technician will contact them within 2 hours.`;
 
-  await retellPatch('update-retell-llm/llm_3957fe06781d122876bf4ad5839b', {
+  await client.llm.update('llm_3957fe06781d122876bf4ad5839b', {
     general_prompt: supportPrompt,
     begin_message: 'Hello {{first_name}}, thank you for calling CATEC 24/7 Technical Support. How can I help you today?',
   });
@@ -272,7 +244,7 @@ You support drivers using the Plug'N Go UAE & KSA public charging network, mobil
 - RFID: Hold card flat against reader for 3 full seconds.
 - Wallet/Top-up: Explain Apple Pay / Credit Card top-up inside the app.`;
 
-  await retellPatch('update-retell-llm/llm_6ae1d72416c54da0439cf9e3b0a2', {
+  await client.llm.update('llm_6ae1d72416c54da0439cf9e3b0a2', {
     general_prompt: plugngoPrompt,
     begin_message: "Hello {{first_name}}, thank you for calling Plug 'n Go Support. How can I help you today?",
   });
@@ -290,7 +262,7 @@ You support drivers using the Plug'N Go UAE & KSA public charging network, mobil
 
   for (const aId of agentIds) {
     try {
-      await retellPatch(`update-agent/${aId}`, {
+      await client.agent.update(aId, {
         webhook_url: WEBHOOK_URL,
       });
       console.log(`✅ Webhook URL updated for agent: ${aId}`);
